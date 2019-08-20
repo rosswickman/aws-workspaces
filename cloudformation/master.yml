@@ -1,0 +1,102 @@
+## Tactful Cloud Product Stack (http://tactful.cloud)
+## Developer: @rosswickman (ross@tactful.cloud)
+## Stack: Workspaces Bastion Host(s)
+## Resource Provisioned: 
+## - VPC - for deploying Workspace Systems
+## - Directory - SimpleAD Directory for Workspace Users
+## - Workspaces - Configuration of Workspaces
+## Descripton: This stack deploys all required resources
+## to configures AWS Workspaces as a secure Bastion Host Solution
+## Caveat(s): Some manual configurations may be required once
+## deployed depending on account setup and VPC Peering
+---
+AWSTemplateFormatVersion: 2010-09-09
+Description: >
+  Stack - Workspaces - Bastion Host(s) Configuration Master
+
+Metadata:
+
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - 
+        Label:
+          default: "Deployment Configuration"
+        Parameters:
+          - pTemplateBucket
+          - pSolutionDir
+
+      # - 
+      #   Label:
+      #     default: "VPC Configuration"
+      #   Parameters:
+      #     - pName
+      #     - pEnvironment
+      #     - pGroup
+      #     - pNetwork
+      #     - pBlockSize
+
+      # - 
+      #   Label:
+      #     default: "Directory Configuration"
+      #   Parameters:
+      #     - pDomainName
+      #     - pShortName
+      #     - pSize
+      #     - pSADDescription
+      #     - pADPassword
+      #     # - pVPCID
+      #     # - pSubnet1
+      #     # - pSubnet2
+
+    ParameterLabels:
+      ## Deployment Configuration
+      pTemplateBucket:
+        default: "Template Bucket URL"
+      pSolutionDir:
+        default: "Solution Sub-Directory"
+
+      ## VPC Configuration
+
+      ## Directory Configuration
+
+Parameters:
+  ## Deployment Configuration
+  pTemplateBucket:
+    Description: URL of Host bucket containing resources templates
+    Type: String
+    #Default: aws-solutions.tactfulcloud.com
+    Default: aws-solutions.tactfulcloud.com.s3.amazonaws.com
+  pSolutionDir:
+    Description: Sub-directory of solution
+    Type: String
+    Default: workspaces-bastion
+
+  ## VPC Configuration
+
+  ## Directory Configuration
+
+Resources:
+  VPCStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub https://${pTemplateBucket}/${pSolutionDir}/cloudformation/vpc.yml
+      Parameters:
+        pName: 'cfstack'
+        pEnvironment: 'testing'
+        pGroup: 'testing'
+        pNetwork: '10.10.0'
+        pBlockSize: '26'
+  DirectoryStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub https://${pTemplateBucket}/${pSolutionDir}/cloudformation/directory.yml
+      Parameters:
+        pDomainName: 'test-tc.tactfulcloud.com'
+        pShortName: 'test'
+        pSize: 'Large'
+        pSADDescription: 'Just a test description'
+        pADPassword: 'Pass@w0rd'
+        pVPCID:   !GetAtt VPCStack.Outputs.oWorkspaceVPC
+        pSubnet1: !GetAtt VPCStack.Outputs.oSubnetA
+        pSubnet2: !GetAtt VPCStack.Outputs.oSubnetB
+

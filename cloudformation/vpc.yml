@@ -1,0 +1,269 @@
+## Tactful Cloud Resource Template (http://tactful.cloud)
+## Developer: @rosswickman (ross@tactful.cloud)
+## Resource Provisioned: Minimal VPC Resources for Workspaces
+## Descripton: Template deploys VPC required for configuring
+## Workspaces as a bastion setup.
+---
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >
+  VPC - Workspaces Bastion Host(s) VPC
+
+Metadata:
+
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - 
+        Label:
+          default: "Environment Details"
+        Parameters:
+          - pName
+          - pEnvironment
+          - pGroup
+
+      - 
+        Label:
+          default: "Networking Details"
+        Parameters:
+          - pNetwork
+          - pBlockSize
+
+    ParameterLabels:
+      pName:
+        default: "VPC Name"
+      pEnvironment:
+        default: "Environment"
+      pGroup:
+        default: "User Group Classification"
+      pNetwork:
+        default: "Network ID IP"
+      pBlockSize:
+        default: "CIDR Block Size"
+
+Parameters:
+
+  pName:
+    Description: Name of vpc (app or purpose)
+    Type: String
+    Default: "workspaces"
+  pEnvironment:
+    Description: Environment type of VPC
+    Type: String
+    Default: "bastion"
+    AllowedValues:
+    - 'bastion'
+    - 'development'
+    - 'production'
+    - 'testing'
+    - 'qa'
+  pGroup:
+    Description: End user group type
+    Type: String
+    Default: "testing"
+    AllowedValues:
+    - 'clients'
+    - 'collaborators'
+    - 'contractors'
+    - 'employees'
+    - 'testing'
+  pNetwork:
+    Description: Starting IP Address (i.e. 172.16.0)
+    Type: String
+    Default: "172.16.x"
+  pBlockSize:
+    Type: String
+    Description: CIDR Block Size for this VPC (26=54 Addresss / 27=22 Addresses)
+    AllowedValues:
+    - '26' # 27 x2 Addresses
+    - '27' # 11 x2 Addresses
+
+Mappings:
+
+  mCIDR:
+    '26':
+      Block: 0/26
+      SubnetA: 0/27
+      SubnetB: 32/27
+    '27':
+      Block: 0/27
+      SubnetA: 0/28
+      SubnetB: 16/28
+    
+Resources:
+
+  rWorkspaceVPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock:
+        Fn::Join:
+        - '.'
+        - - Ref: pNetwork
+          - Fn::FindInMap:
+            - mCIDR
+            - Ref: pBlockSize
+            - Block
+      Tags:
+      - Key: Name
+        Value:
+          Fn::Join:
+          - ''
+          - - Ref: pName
+            - "-"
+            - Ref: pEnvironment
+            - "-"
+            - Ref: pGroup
+
+  rSubnetA:
+    Type: AWS::EC2::Subnet
+    DependsOn: rWorkspaceVPC 
+    Properties:
+      AvailabilityZone:
+        # Fn::Join:
+        # - ''
+        # - - Ref: AWS::Region
+        #   - a
+        Fn::Select:
+         - 0
+         - Fn::GetAZs: {Ref: 'AWS::Region'}
+      VpcId:
+        Ref: rWorkspaceVPC
+      CidrBlock:
+        Fn::Join:
+        - '.'
+        - - Ref: pNetwork
+          - Fn::FindInMap:
+            - mCIDR
+            - Ref: pBlockSize
+            - SubnetA
+      Tags:
+      - Key: Name
+        Value:
+          Fn::Join:
+          - ''
+          - - Ref: pName
+            - "-"
+            - Ref: pEnvironment
+            - "-"
+            - Ref: pGroup
+            - "-SubnetA"
+
+  rSubnetB:
+    Type: AWS::EC2::Subnet
+    DependsOn: rWorkspaceVPC 
+    Properties:
+      AvailabilityZone:
+        # Fn::Join:
+        # - ''
+        # - - Ref: AWS::Region
+        #   - b
+        Fn::Select:
+         - 1
+         - Fn::GetAZs: {Ref: 'AWS::Region'}
+      VpcId:
+        Ref: rWorkspaceVPC
+      CidrBlock:
+        Fn::Join:
+        - '.'
+        - - Ref: pNetwork
+          - Fn::FindInMap:
+            - mCIDR
+            - Ref: pBlockSize
+            - SubnetB
+      Tags:
+      - Key: Name
+        Value:
+          Fn::Join:
+          - ''
+          - - Ref: pName
+            - "-"
+            - Ref: pEnvironment
+            - "-"
+            - Ref: pGroup
+            - "-SubnetB"
+
+  rInternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value:
+            Fn::Join:
+            - ''
+            - - Ref: pName
+              - "-"
+              - Ref: pEnvironment
+              - "-"
+              - Ref: pGroup
+  rGatewayAttachement:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: 
+        Ref: rWorkspaceVPC
+      InternetGatewayId: 
+        Ref: rInternetGateway
+  
+  rRouteTable:
+    Type: AWS::EC2::RouteTable
+    DependsOn: rWorkspaceVPC
+    Properties:
+      VpcId:
+        Ref: rWorkspaceVPC
+      Tags:
+      - Key: Name
+        Value:
+          Fn::Join:
+          - ''
+          - - Ref: pName
+            - "-"
+            - Ref: pEnvironment
+            - "-"
+            - Ref: pGroup
+
+  rDefaultRoute:
+    Type: AWS::EC2::Route
+    DependsOn: rGatewayAttachement
+    Properties:
+      RouteTableId: 
+        Ref: rRouteTable
+      DestinationCidrBlock: '0.0.0.0/0'
+      GatewayId: 
+        Ref: rInternetGateway
+
+  rSubnetAAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    DependsOn: rSubnetA
+    Properties:
+      RouteTableId:
+        Ref: rRouteTable
+      SubnetId:
+        Ref: rSubnetA
+  rSubnetBAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    DependsOn: rSubnetB
+    Properties:
+      RouteTableId:
+        Ref: rRouteTable
+      SubnetId:
+        Ref: rSubnetB
+
+Outputs:
+
+  oWorkspaceVPC:
+    Description: VPC ID
+    Value:
+      Ref: rWorkspaceVPC
+  oInternetGateway:
+    Description: Internet Gateway ID
+    Value:
+      Ref: rInternetGateway
+  oRouteTable:
+    Description: Route Table ID
+    Value:
+      Ref: rRouteTable
+  oSubnetA:
+    Description: SubnetA ID
+    Value:
+      Ref: rSubnetA
+  oSubnetB:
+    Description: SubnetB ID
+    Value:
+      Ref: rSubnetB

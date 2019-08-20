@@ -1,0 +1,143 @@
+## Tactful Cloud Resource Template (http://tactful.cloud)
+## Developer: @rosswickman (ross@tactful.cloud)
+## Resource Provisioned: AWS Directory Service : SimpleAD
+## Descripton: Deploys a SimpleAD Configuration for use with
+## AWS Workspaces.
+## Caveat(s): Almost any parmeter change to this template will force
+## replacement. Modify via console or AWS Directory Service API Reference
+---
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >
+  DirectoryService - SimpleAD for use with Workspaces
+
+Metadata:
+
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - 
+        Label:
+          default: "Directory Info"
+        Parameters:
+          - pDomainName
+          - pShortName
+          - pSize
+      - 
+        Label:
+          default: "Administration"
+        Parameters:
+          - pSADDescription
+          - pADPassword
+          - pVPCID
+          - pSubnet1
+          - pSubnet2
+
+    ParameterLabels:
+      pDomainName:
+        default: "Domain Name"
+      pShortName:
+        default: "NetBIOS Name"
+      pSize:
+        default: "Size"
+      pADPassword:
+        default: "Password"
+      pSADDescription:
+        default: "Description"
+      pVPCID:
+        default: "VPC"
+      pSubnet1:
+        default: "Subnet 1"
+      pSubnet2:
+        default: "Subnet 2"
+
+Parameters:
+
+  pDomainName:
+    Description: FQDN of the domain for this directory
+    Type: String
+    Default: "sub.mydomain.com"
+    AllowedPattern: ^([a-zA-Z0-9]+[\\.-])+([a-zA-Z0-9])+$
+  pShortName:
+    Description: Netbios name of the domain for this directory
+    Type: String
+    Default: "sub"
+    AllowedPattern: ^[^\\/:*?\"\<\>|.]+[^\\/:*?\"<>|]*$
+  pSize:
+    Description: Size of the Simple AD
+    Type: String
+    AllowedValues:
+    - 'Small'
+    - 'Large'
+    Default: "Small"
+  pADPassword:
+    Description: Directory Service Admin Password
+    Type: String
+    NoEcho: true
+    Default: "Pass@w0rd"
+    AllowedPattern: (?=^.{8,64}$)((?=.*\d)(?=.*[A-Z])(?=.*[a-z])|(?=.*\d)(?=.*[^A-Za-z0-9\s])(?=.*[a-z])|(?=.*[^A-Za-z0-9\s])(?=.*[A-Z])(?=.*[a-z])|(?=.*\d)(?=.*[A-Z])(?=.*[^A-Za-z0-9\s]))^.*
+  pSADDescription:
+    Description: Descriptive text that appears on the details page after the directory has been created.
+    Type: String
+    Default: "Workspaces Directory for..."
+    AllowedPattern: ^([a-zA-Z0-9_])[\\a-zA-Z0-9_@#%*+=:?./!\s-]*$
+  pVPCID:
+    Description: The VPC the directory will be created in
+    Type: List<AWS::EC2::VPC::Id>
+  pSubnet1:
+    Description: Subnet to be used for the Directoty
+    Type: List<AWS::EC2::Subnet::Id>
+  pSubnet2:
+    Description: Subnet to be used for the Directoty
+    Type: List<AWS::EC2::Subnet::Id>
+
+Resources:
+
+  rWorkspacesSimpleAD:
+    Type: AWS::DirectoryService::SimpleAD
+    Properties: 
+      Description: 
+        Ref: pSADDescription
+      Name: 
+        Ref: pDomainName
+      Password: 
+        Ref: pADPassword
+      ShortName: 
+        Ref: pShortName
+      Size: 
+        Ref: pSize
+      VpcSettings: 
+        VpcId:
+          Fn::Select:
+          - '0'
+          - Ref: pVPCID
+        SubnetIds:
+        - Fn::Select:
+          - '0'
+          - Ref: pSubnet1
+        - Fn::Select:
+          - '0'
+          - Ref: pSubnet2
+      CreateAlias: false
+      EnableSso: false
+
+Outputs:
+
+  oDirectoryID:
+    Description: ID of the SimpleAD
+    Value:
+      Ref: rWorkspacesSimpleAD
+  oPrimaryDNS:
+    Description: DNS IPs of the SimpleAD
+    Value:
+      Fn::Select:
+      - '0'
+      - Fn::GetAtt:
+        - rWorkspacesSimpleAD
+        - DnsIpAddresses
+  oSecondaryDNS:
+    Description: DNS IPs of the SimpleAD
+    Value:
+      Fn::Select:
+      - '1'
+      - Fn::GetAtt:
+        - rWorkspacesSimpleAD
+        - DnsIpAddresses

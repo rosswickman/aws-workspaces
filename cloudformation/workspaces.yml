@@ -1,0 +1,74 @@
+## Tactful Cloud Resource Template (http://tactful.cloud)
+## Developer: @rosswickman (ross@tactful.cloud)
+## Resource Provisioned: Individual Workspaces
+## Descripton: Template deploys VPC required for configuring
+## Workspaces as a bastion setup.
+## Caveat(s): 
+## - Workspace Directory must be manually registered
+## - The deployment of a workspace and username will not send email
+
+---
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >
+  Workspaces- Individual Bastion Configuration
+
+Metadata:
+
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - 
+        Label:
+          default: "Configure Workspaces"
+        Parameters:
+          - pDirectory
+          - pUser
+
+    ParameterLabels:
+      pDirectory:
+        default: "Directory ID"
+      pUser:
+        default: "Directory User"
+
+Parameters:
+  pDirectory:
+    Type: String
+    Default: d-xxxxxxxxxx
+  pUser:
+    Type: String
+    Default: Owner Username
+
+Mappings:
+  mBundle:
+    "us-west-2":
+      StdWin10: "wsb-8vbljg4r6"
+    "us-east-1":
+      StdWin10: "wsb-8vbljg4r6"
+
+Resources:
+
+  rWorkspace1:
+    Type: AWS::WorkSpaces::Workspace
+    Properties: 
+      DirectoryId: !Ref pDirectory
+      UserName: !Ref pUser
+      BundleId: !FindInMap [mBundle, !Ref "AWS::Region", StdWin10]
+      RootVolumeEncryptionEnabled: false
+      UserVolumeEncryptionEnabled: false
+      WorkspaceProperties: 
+        ComputeTypeName: STANDARD
+        RootVolumeSizeGib: 80
+        RunningMode: AUTO_STOP
+        RunningModeAutoStopTimeoutInMinutes: 60
+        UserVolumeSizeGib: 50
+      Tags:
+      - Key: Username
+        Value: !Ref pUser
+      - Key: Directory
+        Value: !Ref pDirectory
+       - Key: Bundle
+         Value: !FindInMap [mBundle, !Ref "AWS::Region", StdWin10]
+      
+Outputs:
+  oWorkspaceId:
+    Description: ID of the Workspace
+    Value: !Ref rWorkspace1

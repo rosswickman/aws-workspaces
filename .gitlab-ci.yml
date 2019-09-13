@@ -6,23 +6,15 @@ variables:
   SOLUTION: workspaces-bastion
 
 stages:
-  - clean
   - deploy
-
-clear_s3:
-  image: python:latest
-  stage: clean
-  script:
-    - pip install awscli
-    - aws s3 rm s3://${BUCKET_NAME}/${SOLUTION} --recursive
-  only:
-    - master
 
 deploy_solution:
   image: python:latest
   stage: deploy
   script:
     - pip install awscli
-    - aws s3 cp dist s3://${BUCKET_NAME}/${SOLUTION}/ --recursive
+    - aws s3 sync . s3://${BUCKET_NAME}/{SOLUTION} --delete --exclude ".git/*"  --exclude ".gitlab-ci.yml" --exclude "README.md"
+  only:
+  - master
   only:
     - master

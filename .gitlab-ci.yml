@@ -1,0 +1,28 @@
+image: alpine:latest
+
+variables:
+  AWS_DEFAULT_REGION: us-east-2
+  BUCKET_NAME: aws-solutions.tactfulcloud.com
+  SOLUTION: workspaces-bastion
+
+stages:
+  - clean
+  - deploy
+
+clear_s3:
+  image: python:latest
+  stage: clean
+  script:
+    - pip install awscli
+    - aws s3 rm s3://${BUCKET_NAME}/${SOLUTION} --recursive
+  only:
+    - master
+
+deploy_solution:
+  image: python:latest
+  stage: deploy
+  script:
+    - pip install awscli
+    - aws s3 cp dist s3://${BUCKET_NAME}/${SOLUTION}/ --recursive
+  only:
+    - master

@@ -26,7 +26,7 @@ function New-PeeringConnection {
     $approvedrequest = Approve-EC2VpcPeeringConnection -VpcPeeringConnectionId $connectionRequestInfo.VpcPeeringConnectionId -ProfileName $AcceptingAcctProfie -Region $AcceptingAcctRegion
 
     ## Get route table information for assigning routes
-    $acceptingVpcRouteTable = Get-EC2RouteTable -RouteTableId $AcceptingAcctRouteTable -ProfileName $AcceptingAcctProfile -Region $AcceptingAcctRegion
+    $acceptingVpcRouteTable = Get-EC2RouteTable -RouteTableId $AcceptingAcctRouteTableID -ProfileName $AcceptingAcctProfile -Region $AcceptingAcctRegion
     $requestingVpcRouteTable = Get-EC2RouteTable -RouteTableId $RequestingAcctRouteTableID -ProfileName $RequestingAcctProfile -Region $RequestingAcctRegion
 
     ## Configure routes in respective routetables

@@ -14,14 +14,14 @@ Metadata:
 
   AWS::CloudFormation::Interface:
     ParameterGroups:
-      - 
+      -
         Label:
           default: "Directory Info"
         Parameters:
           - pDomainName
           - pShortName
           - pSize
-      - 
+      -
         Label:
           default: "Administration"
         Parameters:
@@ -93,18 +93,18 @@ Resources:
 
   rWorkspacesSimpleAD:
     Type: AWS::DirectoryService::SimpleAD
-    Properties: 
-      Description: 
+    Properties:
+      Description:
         Ref: pSADDescription
-      Name: 
+      Name:
         Ref: pDomainName
-      Password: 
+      Password:
         Ref: pADPassword
-      ShortName: 
+      ShortName:
         Ref: pShortName
-      Size: 
+      Size:
         Ref: pSize
-      VpcSettings: 
+      VpcSettings:
         VpcId:
           Fn::Select:
           - '0'

@@ -1,7 +1,7 @@
 ## Tactful Cloud Product Stack (http://tactful.cloud)
 ## Developer: @rosswickman (ross@tactful.cloud)
 ## Stack: Workspaces Bastion Host(s)
-## Resource Provisioned: 
+## Resource Provisioned:
 ## - VPC - for deploying Workspace Systems
 ## - Directory - SimpleAD Directory for Workspace Users
 ## - Workspaces - Configuration of Workspaces
